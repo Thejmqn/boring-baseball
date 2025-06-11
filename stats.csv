@@ -1,0 +1,5 @@
+Factor,Data Location,Scale Factor
+length,gameData.gameInfo.gameDurationMinutes,1
+delay,gameData.gameInfo.delayDurationMinutes,2
+flags,gameData.flags,10000
+attendance,gameData.gameInfo.attendance,0.02
