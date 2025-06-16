@@ -9,11 +9,13 @@ TEAM_ID = 108
 def calc_boring_details(game):
     try:
         # Special flags
+        reason = ""
         flags = game["gameData"].get("flags", {})
         if flags.get("noHitter") or flags.get("perfectGame"):
+            reason = "Special game (no-hitter or perfect game)"
             return {
                 "boringScore": 0,
-                "reason": "Special game (no-hitter or perfect game)"
+                "reason": reason
             }
 
         boring_factor = 0
@@ -34,12 +36,14 @@ def calc_boring_details(game):
         if num_innings <= 9:
             if duration is not None:
                 duration_score = round((duration - 150) / 3)
-                duration_score += round(delay / 1.5)
             else:
                 duration_score = round(delay / 3)
             boring_factor += duration_score
+            delay_score = (duration_score + round(delay / 1.5)) if delay else 0
+            reason = "Game Delay excluded. Delay score: " + str(delay_score) if delay else ""
         else:
             duration_score = 0
+            reason = "Extra innings game — duration score excluded."
 
         # Attendance
         attendance = game_info.get("attendance", 0)
@@ -158,13 +162,14 @@ def calc_boring_details(game):
             "moundVisits": mound_home + mound_away,
             "reviews": reviews_home + reviews_away,
             "durationScore": round(duration_score, 2),
+            "delayMinutes": delay,
             "numInnings": num_innings,
             "attendanceScore": round(attendance_score, 2),
             "badTeamsPenalty": round(bad_team_penalty, 2),
             "winPctHome": round(win_pct_home, 3),
             "winPctAway": round(win_pct_away, 3),
             "seasonProgress": round(season_progress, 3),
-            "reason": ""
+            "reason": reason
         }
 
     except (KeyError, TypeError, ValueError):
@@ -213,7 +218,7 @@ async def main():
                 results.append(score)
         with open("boring_games_report.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=results[0].keys())
-            writer.writeheader()
+            # writer.writeheader()
             writer.writerows(results)
 
 asyncio.run(main())
