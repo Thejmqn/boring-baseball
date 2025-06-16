@@ -207,7 +207,7 @@ async def main():
         for i, element in enumerate(data):
             score = calc_boring_details(element)
             if score is None:
-                print("Could not get score for game " + str(i + START_GAME))
+                print("Could not get score for game " + str(i))
                 continue
             if score:
                 results.append(score)
