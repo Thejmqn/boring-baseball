@@ -2,9 +2,9 @@ import mlbstatsapi
 import asyncio
 import aiohttp
 import csv
+import requests
 
-START_GAME = 745234
-NUM_GAMES = 100
+TEAM_ID = 108
 
 def calc_boring_details(game):
     try:
@@ -170,16 +170,39 @@ def calc_boring_details(game):
     except (KeyError, TypeError, ValueError):
         return None
 
+def fetch_mlb_schedule(team_id):
+    url = "https://statsapi.mlb.com/api/v1/schedule"
+    params = {
+        "hydrate": "team,lineups",
+        "sportId": 1,
+        "startDate": "2024-03-28", # Opening Day
+        "endDate": "2024-09-30", # Closing Day
+        "teamId": team_id
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json()["dates"]
+    except requests.RequestException as e:
+        print(f"Error fetching schedule: {e}")
+        return None
+
 async def fetch(session, url):
     async with session.get(url) as response:
         return await response.json()
 
 async def main():
+    team_dates = fetch_mlb_schedule(TEAM_ID)
+    team_games = []
+    for day in team_dates:
+        for game in day["games"]:
+            team_games.append(game["gamePk"])
+
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch(session, "https://statsapi.mlb.com/api/v1.1/game/" + str(i) + "/feed/live") for i in range(START_GAME, START_GAME+NUM_GAMES)]
+        tasks = [fetch(session, "https://statsapi.mlb.com/api/v1.1/game/" + str(game_id) + "/feed/live") for game_id in team_games]
         data = await asyncio.gather(*tasks)
 
-        boring = {"game_id": 0, "score": 10000}
         results = []
         for i, element in enumerate(data):
             score = calc_boring_details(element)
@@ -188,12 +211,9 @@ async def main():
                 continue
             if score:
                 results.append(score)
-        with open("boring_games_report.csv", "w", newline="", encoding="utf-8") as f:
+        with open("boring_games_report.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=results[0].keys())
             writer.writeheader()
             writer.writerows(results)
-
-        print(boring)
-
 
 asyncio.run(main())
