@@ -1,4 +1,3 @@
-import mlbstatsapi
 import asyncio
 import aiohttp
 import csv
@@ -145,6 +144,10 @@ def calc_boring_details(game):
         total_pitchers = pitchers_home + pitchers_away
         boring_factor += total_pitchers * 0.5
 
+        # User data
+        home_team = game["gameData"]["teams"]["home"].get("name", "Unknown")
+        away_team = game["gameData"]["teams"]["away"].get("name", "Unknown")
+        game_date = game["gameData"]["datetime"].get("originalDate", game.get("gameDate", "Unknown"))
         return {
             "boringScore": int(boring_factor),
             "gamePk": game.get("gamePk"),
@@ -169,6 +172,9 @@ def calc_boring_details(game):
             "winPctHome": round(win_pct_home, 3),
             "winPctAway": round(win_pct_away, 3),
             "seasonProgress": round(season_progress, 3),
+            "homeTeam": home_team,
+            "awayTeam": away_team,
+            "gameDate": game_date,
             "reason": reason
         }
 
@@ -218,7 +224,7 @@ async def main():
                 results.append(score)
         with open("boring_games_report.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=results[0].keys())
-            # writer.writeheader()
+            writer.writeheader()
             writer.writerows(results)
 
 asyncio.run(main())
